@@ -1286,23 +1286,23 @@ async function handleUpdate(update: any) {
 
     const payload = JSON.parse(payment.invoice_payload);
     const profile = await getUserProfile(payload.userId);
-    profile.inAppStars += payload.amount;
+    profile.inAppStars += payment.total_amount;
     await saveUserProfile(profile);
 
     const paymentRecord: Payment = {
       id: crypto.randomUUID(),
       userId: payload.userId,
-      amount: payload.amount,
+      amount: payment.total_amount,
       timestamp: Date.now(),
     };
     await kv.set(["payments", paymentRecord.id], paymentRecord);
 
     let statsRes = await kv.get<Stats>(["stats"]);
     let stats = statsRes.value || { totalMatches: 0, totalStarsDistributed: 0, totalStarsPurchased: 0 };
-    stats.totalStarsPurchased += payload.amount;
+    stats.totalStarsPurchased += payment.total_amount;
     await kv.set(["stats"], stats);
 
-    await sendText(update.message.chat.id, getText(profile.language || "en", "paymentSuccess") + payload.amount + getText(profile.language || "en", "starsAdded"));
+    await sendText(update.message.chat.id, getText(profile.language || "en", "paymentSuccess") + payment.total_amount + getText(profile.language || "en", "starsAdded"));
   }
 }
 
