@@ -161,6 +161,7 @@ const texts: Record<Lang, Record<string, string>> = {
     back: "🔙 Back",
     copy: "📋 Copy",
     share: "📤 Share",
+    referralActivated: "Your referral activated the bot and you got 10 XOG",
   },
   ru: {
     chooseLang: "🌍 Выберите язык",
@@ -242,6 +243,7 @@ const texts: Record<Lang, Record<string, string>> = {
     back: "🔙 Назад",
     copy: "📋 Копировать",
     share: "📤 Поделиться",
+    referralActivated: "Ваш реферал активировал бота и вы получили 10 XOG",
   },
 };
 
@@ -465,11 +467,6 @@ async function handleStart(msg: any) {
     const refId = parseInt(text.split(" ")[1]);
     if (!isNaN(refId) && refId !== user.id && !profile.referredBy) {
       profile.referredBy = refId;
-      const referrer = await getUserProfile(refId);
-      if (referrer) {
-        referrer.referrals += 1;
-        await saveUserProfile(referrer);
-      }
     }
   }
   await saveUserProfile(profile);
@@ -787,19 +784,25 @@ async function endMatch(match: Match, forfeitWinner?: number) {
       p1Profile.hasPlayedTrophy = true;
       if (p1Profile.referredBy) {
         const referrer = await getUserProfile(p1Profile.referredBy);
+        referrer.referrals += 1;
         referrer.earnedFromReferrals += 10;
         referrer.xog += 10;
         await saveUserProfile(referrer);
+        await sendText(referrer.id, getText(referrer.language || "en", "referralActivated"));
       }
+      await saveUserProfile(p1Profile);
     }
     if (!p2Profile.hasPlayedTrophy) {
       p2Profile.hasPlayedTrophy = true;
       if (p2Profile.referredBy) {
         const referrer = await getUserProfile(p2Profile.referredBy);
+        referrer.referrals += 1;
         referrer.earnedFromReferrals += 10;
         referrer.xog += 10;
         await saveUserProfile(referrer);
+        await sendText(referrer.id, getText(referrer.language || "en", "referralActivated"));
       }
+      await saveUserProfile(p2Profile);
     }
   }
 
@@ -808,9 +811,6 @@ async function endMatch(match: Match, forfeitWinner?: number) {
   let stats = statsRes.value || { totalMatches: 0, totalStarsDistributed: 0, totalStarsPurchased: 0 };
   stats.totalMatches += 1;
   await kv.set(["stats"], stats);
-
-  await saveUserProfile(p1Profile);
-  await saveUserProfile(p2Profile);
 
   await sendText(match.p1, getText(p1Profile.language || "en", statusKeyP1));
   await sendText(match.p2, getText(p2Profile.language || "en", statusKeyP2));
